@@ -14,7 +14,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials: any): Promise<Promise> {
+      async authorize(credentials: any): Promise<any> {
         await dbConnect();
         try {
           const user = await UserModel.findOne({
@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
             session.user.isVerified=token.isVerified
             session.user.isAcceptingMessages=token.isAcceptingMessages
             session.user.username=token.username
-            
+
         }
       return session
     },
