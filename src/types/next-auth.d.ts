@@ -13,6 +13,17 @@ declare module "next-auth" {
       isVerified?: boolean;
       isAcceptingMessages?: boolean;
       username?: string;
-    }& DefaultSession
+    }& DefaultSession['user']
+  }
+}
+
+declare module 'next-auth/jwt'{
+  interface JWT{
+     
+      _id?: string;
+      isVerified?: boolean;
+      isAcceptingMessages?: boolean;
+      username?: string;
+    
   }
 }
