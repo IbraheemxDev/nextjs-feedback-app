@@ -1,76 +1,110 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-
-import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
 
 export const authOptions: NextAuthOptions = {
+  // Configure authentication providers
   providers: [
     CredentialsProvider({
       id: "credentials",
       name: "Credentials",
+
+      // Define login form fields
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
+        identifier: {
+          label: "Email or Username",
+          type: "text",
+        },
+        password: {
+          label: "Password",
+          type: "password",
+        },
       },
-      async authorize(credentials: any): Promise<any> {
+
+      // Authenticate user credentials
+      async authorize(credentials): Promise<any> {
+        // Establish database connection
         await dbConnect();
+
         try {
-          const user = await UserModel.findOne({
-            $or: [
-              { email: credentials.identifier },
-              { username: credentials.identifier },
-            ],
-          });
-          if (!user) {
-            throw new Error("No user found with this email");
+          // Ensure required credentials are provided
+          if (!credentials?.identifier || !credentials?.password) {
+            throw new Error("Missing credentials");
           }
+
+          // Normalize login identifier
+          const identifier = credentials.identifier.trim().toLowerCase();
+
+          // Find user by email or username
+          const user = await UserModel.findOne({
+            $or: [{ email: identifier }, { username: identifier }],
+          });
+
+          if (!user) {
+            throw new Error("User not found");
+          }
+
+          // Prevent unverified users from logging in
           if (!user.isVerified) {
             throw new Error("Please verify your account before login");
           }
-          const isPasswordCorrect = await bcrypt.compare(
+
+          // Verify password
+          const isPasswordCorrect = await user.comparePassword(
             credentials.password,
-            user.password,
           );
-          if (isPasswordCorrect) {
-            return user;
-          } else {
+
+          if (!isPasswordCorrect) {
             throw new Error("Incorrect password");
           }
-        } catch (error: any) {
-          throw new Error(error);
+
+          // Return authenticated user
+          return user;
+        } catch (error) {
+          throw error;
         }
       },
-    }), 
+    }),
   ],
-   callbacks: {
-       async jwt({ token, user  }) {
-        if(user){
-            token._id=user._id?.toString()
-            token.isVerified=user.isVerified;
-            token.isAcceptingMessages=user.isAcceptingMessages;
-            token.username=user.username
-        }
 
-         return token
-       },
-    async session({ session, token }) {
-        if(token){
-            session.user._id=token._id;
-            session.user.isVerified=token.isVerified
-            session.user.isAcceptingMessages=token.isAcceptingMessages
-            session.user.username=token.username
+  // Customize JWT and session data
+  callbacks: {
+    async jwt({ token, user }) {
+      // Store user information inside the JWT
+      if (user) {
+        token._id = user._id?.toString();
+        token.isVerified = user.isVerified;
+        token.isAcceptingMessage = user.isAcceptingMessages;
+        token.username = user.username;
+      }
 
-        }
-      return session
+      return token;
     },
-  pages:{
-    signIn: '/sign-in',
+
+    async session({ session, token }) {
+      // Expose JWT data in the session object
+      if (token) {
+        session.user._id = token._id;
+        session.user.isVerified = token.isVerified;
+        session.user.isAcceptingMessages = token.isAcceptingMessages;
+        session.user.username = token.username;
+      }
+
+      return session;
+    },
   },
-  session:{
-    strategy:"jwt"
+
+  // Custom authentication pages
+  pages: {
+    signIn: "/sign-in",
   },
-  secret:process.env.NEXTAUTH_SECRET,
-}
-}
+
+  // Use JWT-based sessions
+  session: {
+    strategy: "jwt",
+  },
+
+  // Secret used to sign JWTs
+  secret: process.env.NEXTAUTH_SECRET,
+};

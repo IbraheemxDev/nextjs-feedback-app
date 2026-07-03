@@ -1,35 +1,30 @@
-import { NextResponse } from 'next/server'
-import { NextRequest } from 'next/server'
- export { default } from "next-auth/middleware"
- import { getToken } from "next-auth/jwt"
-// This function can be marked `async` if using `await` inside
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+
+// Export NextAuth's default middleware
+export { default } from "next-auth/middleware";
+
+// Middleware to protect routes and handle authentication-based redirects
 export async function middleware(request: NextRequest) {
-    const token=await getToken({req:request})
-    const url=request.nextUrl;
-    if(token && 
-        (
-            url.pathname.startsWith('/sign-in') || 
-            url.pathname.startsWith('/sign-up') ||
-            url.pathname.startsWith('/verify') ||
-            url.pathname.startsWith('/') 
+  // Retrieve the user's JWT token
+  const token = await getToken({ req: request });
 
-        )
-    ){
-        return NextResponse.redirect(new URL('/dashboard',request.url))
+  // Get the current request URL
+  const url = request.nextUrl;
 
-    }
-  return NextResponse.redirect(new URL('/home', request.url))
+  // Redirect authenticated users away from public pages
+  if (
+    token &&
+    (url.pathname.startsWith("/sign-in") ||
+      url.pathname.startsWith("/sign-up") ||
+      url.pathname.startsWith("/verify") ||
+      url.pathname.startsWith("/"))
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 }
- 
-// Alternatively, you can use a default export:
-// export default function proxy(request: NextRequest) { ... }
- 
+
+// Define the routes where this middleware should run
 export const config = {
-  matcher:[
-     '/sign-in',
-     '/sign-up',
-     '/',
-     '/dashboard/:path*',
-     '/verify/:path*'
-    ],
-}
+  matcher: ["/sign-in", "/sign-up", "/", "/dashboard/:path*", "/verify/:path*"],
+};
