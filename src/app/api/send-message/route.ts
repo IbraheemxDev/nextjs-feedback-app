@@ -8,7 +8,7 @@ import { ApiResponse } from "@/utils/ApiResponse";
 export async function POST(request: NextRequest) {
   // Connect to MongoDB
   await dbConnect();
-
+    
   try {
     // Get request body
     const { username, content } = await request.json();
