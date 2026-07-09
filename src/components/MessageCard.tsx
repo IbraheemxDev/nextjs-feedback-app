@@ -25,8 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button"; // fixed: was importing from @react-email/components
-import { Message } from "@/model/User";
-
+import { Message } from "@/types/Message";
 type MessageCardProps = {
   message: Message;
   onMessageDelete: (messageId: string) => void;

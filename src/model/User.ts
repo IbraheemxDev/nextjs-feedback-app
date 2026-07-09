@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-
+import bcrypt from "bcryptjs";
 export interface Message extends Document {
   content: string;
   createdAt: Date;
@@ -62,6 +62,13 @@ const UserSchema: Schema<User> = new Schema({
   },
   messages: [MessageSchema],
 });
+  // Compare password
+UserSchema.methods.comparePassword = async function (
+  password: string,
+): Promise<boolean> {
+  return await bcrypt.compare(password, this.password);
+};
+
 
 const UserModel =
   (mongoose.models.User as mongoose.Model<User>) ||
