@@ -8,15 +8,15 @@ import { User } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { ApiResponse } from "@/utils/ApiResponse";
-import mongoose from "mongoose";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { messageid: string } },
+  { params }: { params: Promise<{ messageid: string }> }, // fixed: params is now a Promise in this Next.js version
 ) {
   // Connect to MongoDB
   await dbConnect();
-  const messageId = params.messageid;
+
+  const { messageid: messageId } = await params; // fixed: must await params before reading properties
 
   // Get logged-in user's session
   const session = await getServerSession(authOptions);
@@ -34,18 +34,19 @@ export async function DELETE(
       },
       { $pull: { messages: { _id: messageId } } },
     );
-    if(updateResult.modifiedCount==0){
-      return NextResponse.json(new ApiResponse(401, "Message not found or already delete"), {
-      status: 401,
-    });
+    if (updateResult.modifiedCount == 0) {
+      return NextResponse.json(
+        new ApiResponse(401, "Message not found or already deleted"),
+        {
+          status: 401,
+        },
+      );
     }
-    return NextResponse.json(new ApiResponse(200, "Message Deleted "), {
+    return NextResponse.json(new ApiResponse(200, "Message Deleted"), {
       status: 200,
     });
-
-
   } catch (error: any) {
-    console.log("error in delete message route",error)
+    console.log("error in delete message route", error);
     return NextResponse.json(new ApiResponse(500, "Error deleting message"), {
       status: 500,
     });

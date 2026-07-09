@@ -6,19 +6,18 @@ import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import React, { useState, useCallback, useEffect } from "react";
 import { ApiResponse } from "@/types/ApiResponse";
+import { ApiResponse as ApiResponseClass } from "@/utils/ApiResponse";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCcw } from "lucide-react";
+import { Loader2, RefreshCcw, Copy, Inbox } from "lucide-react";
 import MessageCard from "@/components/MessageCard";
 import { Separator } from "@/components/ui/separator";
 import { User } from "next-auth";
-import { Message } from "@/types/Message"; // fixed: plain frontend type, not mongoose's
+import { Message } from "@/types/Message"; // fixed: plain frontend type, not mongoose's (single import, no duplicate)
 
-// fixed: explicit form type derived from the zod schema, so setValue/watch
-// know the exact field shape instead of TS falling back to a loose/incorrect type
 type AcceptMessageFormData = z.infer<typeof AcceptMessageSchema>;
 
 function Page() {
@@ -39,7 +38,7 @@ function Page() {
       acceptMessages: false,
     },
   });
-  const { watch, setValue } = form; // fixed: removed unused "register" (Switch doesn't use it, see below)
+  const { watch, setValue } = form;
   const acceptMessages = watch("acceptMessages");
 
   const fetchAcceptMessages = useCallback(async () => {
@@ -59,20 +58,26 @@ function Page() {
     }
   }, [setValue]);
 
+  // fixed: was calling "/api/accept-messages" (only returns toggle state,
+  // never returns actual messages) — now calls the correct "/api/get-messages"
+  // route, and unwraps the nested { data: { messages } } shape from utils/ApiResponse
   const fetchMessages = useCallback(
     async (refresh: boolean = false) => {
       setIsLoading(true);
       setIsSwitchLoading(false);
       try {
-        const response = await axios.get<ApiResponse>("/api/accept-messages");
-        setMessages(response.data.messages || []);
+        const response = await axios.get<
+          ApiResponseClass<{ messages: Message[] }>
+        >("/api/get-messages");
+
+        setMessages(response.data.data?.messages || []);
         if (refresh) {
           toast.success("Refreshed Messages", {
             description: "Showing latest messages",
           });
         }
       } catch (error) {
-        const axiosError = error as AxiosError<ApiResponse>;
+        const axiosError = error as AxiosError<ApiResponseClass<null>>;
         toast.error("Error", {
           description:
             axiosError.response?.data?.message ??
@@ -118,7 +123,11 @@ function Page() {
   };
 
   if (!session || !session.user) {
-    return <div>PlEASE LOGIN</div>;
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-slate-400">Please login to view your dashboard.</p>
+      </div>
+    );
   }
 
   const copyToClipboard = () => {
@@ -129,65 +138,90 @@ function Page() {
   };
 
   return (
-    <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl">
-      <h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
+    <div className="min-h-screen bg-slate-950">
+      <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 md:p-10 bg-slate-900/60 backdrop-blur-sm border border-slate-800 rounded-2xl w-full max-w-6xl shadow-2xl shadow-black/40">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-slate-100 tracking-tight">
+          User Dashboard
+        </h1>
 
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold mb-2">Copy Your Unique Link</h2>{" "}
-        <div className="flex items-center">
-          <input
-            type="text"
-            value={profileUrl}
-            disabled
-            className="input input-bordered w-full p-2 mr-2"
-          />
-          <Button onClick={copyToClipboard}>Copy</Button>
-        </div>
-      </div>
-
-      <div className="mb-4">
-        {/* fixed: removed {...register("acceptMessages")} — spreading register's
-            onChange onto a Radix/shadcn Switch (which uses onCheckedChange, not
-            onChange) conflicted with the controlled checked/onCheckedChange props
-            below and caused the "boolean not assignable" type error */}
-        <Switch
-          checked={acceptMessages}
-          onCheckedChange={handleSwitchChange}
-          disabled={isSwitchLoading}
-        />
-        <span className="ml-2">
-          Accept Messages: {acceptMessages ? "On" : "Off"}
-        </span>
-      </div>
-      <Separator />
-
-      <Button
-        className="mt-4"
-        variant="outline"
-        onClick={(e) => {
-          e.preventDefault();
-          fetchMessages(true);
-        }}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <RefreshCcw className="h-4 w-4" />
-        )}
-      </Button>
-
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {messages.length > 0 ? (
-          messages.map((message) => (
-            <MessageCard
-              key={message._id}
-              message={message}
-              onMessageDelete={handleDeleteMessage}
+        <div className="mb-6">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400 mb-2">
+            Copy Your Unique Link
+          </h2>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={profileUrl}
+              disabled
+              className="flex-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none"
             />
-          ))
-        ) : (
-          <p>No messages to display.</p>
-        )}
+            <Button
+              onClick={copyToClipboard}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white transition-colors duration-200 shadow-sm hover:shadow-indigo-500/30"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+            </Button>
+          </div>
+        </div>
+
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/50 px-4 py-3">
+          <span className="text-slate-300 text-sm font-medium">
+            Accept Messages:{" "}
+            <span
+              className={
+                acceptMessages ? "text-emerald-400" : "text-slate-500"
+              }
+            >
+              {acceptMessages ? "On" : "Off"}
+            </span>
+          </span>
+          <Switch
+            checked={acceptMessages}
+            onCheckedChange={handleSwitchChange}
+            disabled={isSwitchLoading}
+            className="data-[state=checked]:bg-indigo-600"
+          />
+        </div>
+
+        <Separator className="bg-slate-800 mb-6" />
+
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-slate-200">
+            Your Messages
+          </h2>
+          <Button
+            variant="outline"
+            onClick={(e) => {
+              e.preventDefault();
+              fetchMessages(true);
+            }}
+            className="border-slate-700 text-slate-300 bg-transparent hover:bg-slate-800 hover:text-white hover:border-indigo-600/50 transition-all duration-200"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {messages.length > 0 ? (
+            messages.map((message) => (
+              <MessageCard
+                key={message._id}
+                message={message}
+                onMessageDelete={handleDeleteMessage}
+              />
+            ))
+          ) : (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
+              <Inbox className="h-10 w-10 mb-3 opacity-40" />
+              <p className="text-sm">No messages to display.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

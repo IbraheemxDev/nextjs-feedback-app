@@ -20,12 +20,9 @@ export async function GET(request: NextRequest) {
 
     // Check if user is authenticated
     if (!session || !session.user) {
-      return NextResponse.json(
-        new ApiResponse(401, "Not Authenticated"),
-        {
-          status: 401,
-        }
-      );
+      return NextResponse.json(new ApiResponse(401, "Not Authenticated"), {
+        status: 401,
+      });
     }
 
     // Extract logged-in user
@@ -33,6 +30,15 @@ export async function GET(request: NextRequest) {
 
     // Convert user id into MongoDB ObjectId
     const userId = new mongoose.Types.ObjectId(user._id);
+
+    // fixed: first confirm the user actually exists, separately from whether
+    // they have any messages — these were previously conflated
+    const userExists = await UserModel.exists({ _id: userId });
+    if (!userExists) {
+      return NextResponse.json(new ApiResponse(404, "User not found"), {
+        status: 404,
+      });
+    }
 
     // Aggregate pipeline to fetch all messages
     const foundUser = await UserModel.aggregate([
@@ -44,8 +50,13 @@ export async function GET(request: NextRequest) {
       },
 
       // Convert messages array into individual documents
+      // fixed: preserveNullAndEmptyArrays so users with 0 messages aren't
+      // dropped entirely by $unwind (which previously made them look "not found")
       {
-        $unwind: "$messages",
+        $unwind: {
+          path: "$messages",
+          preserveNullAndEmptyArrays: true,
+        },
       },
 
       // Sort messages by latest first
@@ -66,48 +77,25 @@ export async function GET(request: NextRequest) {
       },
     ]);
 
-    // User not found
-    if (!foundUser || foundUser.length === 0) {
-      return NextResponse.json(
-        new ApiResponse(
-          404,
-          "User not found"
-        ),
-        {
-          status: 404,
-        }
-      );
-    }
+    // fixed: with preserveNullAndEmptyArrays, a user with zero messages ends
+    // up with messages: [null] instead of []  — clean that up
+    const messages = (foundUser[0]?.messages ?? []).filter(Boolean);
 
-    // Return user's messages
+    // Return user's messages (empty array if they have none)
     return NextResponse.json(
-      new ApiResponse(
-        200,
-        "Messages fetched successfully",
-        {
-          messages: foundUser[0].messages,
-        }
-      ),
+      new ApiResponse(200, "Messages fetched successfully", {
+        messages,
+      }),
       {
         status: 200,
       }
     );
-
   } catch (error) {
     // Log unexpected server errors
-    console.error(
-      "Error fetching messages:",
-      error
-    );
+    console.error("Error fetching messages:", error);
 
-    return NextResponse.json(
-      new ApiResponse(
-        500,
-        "Error fetching messages"
-      ),
-      {
-        status: 500,
-      }
-    );
+    return NextResponse.json(new ApiResponse(500, "Error fetching messages"), {
+      status: 500,
+    });
   }
-}
+}       
