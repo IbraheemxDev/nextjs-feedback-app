@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Message from Ali",
+    "content": "Hey! Hope you're doing well. Just wanted to say hi.",
+    "received": "10 minutes ago"
+  },
+  {
+    "title": "Message from Ayesha",
+    "content": "I really liked your latest post. Keep up the great work!",
+    "received": "2 hours ago"
+  },
+  {
+    "title": "Message from Hassan",
+    "content": "Can you recommend a good website or course to learn programming?",
+    "received": "1 day ago"
+  },
+  {
+    "title": "Message from Fatima",
+    "content": "Wishing you all the best. May you achieve great success!",
+    "received": "3 days ago"
+  },
+  {
+    "title": "Message from Bilal",
+    "content": "Can you suggest an interesting Next.js project idea for beginners?",
+    "received": "1 week ago"
+  }
+]

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Verification successful
     if (isCodeValid && isCodeNotExpired) {
       user.isVerified = true;
-      user.verifyCode = "";
+      // user.verifyCode = "";
 
       await user.save();
 

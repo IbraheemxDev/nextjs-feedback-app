@@ -24,24 +24,42 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@react-email/components";
-type MessageCardProps={
-    message:Message;
-    onMessageDelete:(messageId:string)=>void
-}
-const MessageCard = ({message,onMessageDelete}:MessageCardProps) => {
-    const handleDeleteConfirm=async()=>{
-      const response=  axios.delete<ApiResponse>(`/api/delete-message/${message}`)
-        toast.success("Success", {
+import { Button } from "@/components/ui/button"; // fixed: was importing from @react-email/components
+import { Message } from "@/model/User";
+
+type MessageCardProps = {
+  message: Message;
+  onMessageDelete: (messageId: string) => void;
+};
+
+const MessageCard = ({ message, onMessageDelete }: MessageCardProps) => {
+  // handle delete confirmation from alert dialog
+  const handleDeleteConfirm = async () => {
+    try {
+      // fixed: missing "await" — response.data was being read before the promise resolved
+      // fixed: url was using whole "message" object instead of "message._id"
+      const response = await axios.delete<ApiResponse>(
+        `/api/delete-message/${message._id}`
+      );
+      toast.success("Success", {
         description: response.data.message,
       });
-      onMessageDelete(message._id)
+      onMessageDelete(message._id);
+    } catch (error) {
+      // added: delete call had no error handling at all
+      toast.error("Error", {
+        description: "Failed to delete message",
+      });
     }
-}
+  };
+
+  // fixed: "return" was placed after the function body closed with "}",
+  // making the JSX completely unreachable / outside the component.
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Card Title</CardTitle>
+        {/* fixed: hardcoded "Card Title" replaced with actual message content */}
+        <CardTitle>{message.content}</CardTitle>
         <AlertDialog>
           <AlertDialogTrigger render={<Button variant="destructive" />}>
             <X className="w-5 h-5" />
@@ -56,11 +74,16 @@ const MessageCard = ({message,onMessageDelete}:MessageCardProps) => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteConfirm} >Continue</AlertDialogAction>
+              <AlertDialogAction onClick={handleDeleteConfirm}>
+                Continue
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <CardDescription>Card Description</CardDescription>
+        {/* fixed: hardcoded date -> actual createdAt from message */}
+        <CardDescription>
+          {new Date(message.createdAt).toLocaleString()}
+        </CardDescription>
         <CardAction>Card Action</CardAction>
       </CardHeader>
       <CardContent></CardContent>

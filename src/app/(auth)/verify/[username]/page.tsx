@@ -1,59 +1,56 @@
- 'use client'
- import React from 'react'
- import { useParams, useRouter } from 'next/navigation'
- import { toast } from 'sonner'
- import { useForm,Controller } from 'react-hook-form'
- import axios,{AxiosError} from 'axios'
- import { ApiResponse } from '@/types/ApiResponse'
- import { verifySchema } from '@/schemas/verifySchema'
- import * as z from "zod";
- import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from '@base-ui/react/input'
-
+'use client'
+import React from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { useForm, Controller } from 'react-hook-form'
+import axios, { AxiosError } from 'axios'
+import { ApiResponse } from '@/types/ApiResponse'
+import { verifyCodeSchema } from '@/schemas/verifySchema' // fixed: removed unused "verifySchema" import — this page only ever uses verifyCodeSchema
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from '@/components/ui/input'
 import {
   Field,
   FieldGroup,
   FieldLabel,
   FieldError,
 } from "@/components/ui/field";
-import { Button } from '@react-email/components'
- function verifyAccount() {
-    const router=useRouter()
+import { Button } from '@/components/ui/button'
 
-    const params=useParams<{username:string}>()
+function verifyAccount() {
+  const router = useRouter()
+  const params = useParams<{ username: string }>()
+  const form = useForm<z.infer<typeof verifyCodeSchema>>({
+    resolver: zodResolver(verifyCodeSchema),
+    defaultValues: {
+      code: "",
+    },
+  });
 
-      const form = useForm<z.infer<typeof verifySchema>>({
-        resolver: zodResolver(verifySchema),    
+  const onSubmit = async (data: z.infer<typeof verifyCodeSchema>) => { // fixed: type now matches form's actual schema (verifyCodeSchema), not verifySchema
+    try {
+      const response = await axios.post(`/api/verify-code`, {
+        username: params.username,
+        code: data.code
+      })
+      toast.success("Success", {
+        description: response.data.message,
       });
+      router.replace('/sign-in')
+    } catch (error) {
+      console.error("Signup Error:", error);
+      const axiosError = error as AxiosError<ApiResponse>;
+      const errorMessage =
+        axiosError.response?.data.message ??
+        "Something went wrong";
+      toast.error("Error", {
+        description: errorMessage,
+      });
+    }
+  }
 
-
-      const onSubmit=async(data: z.infer<typeof verifySchema>)=>{
-        try {
-            const response=axios.post(`/api/verify-code`,{
-                username:params.username,
-                code:data.code
-            })
-            toast.success("Success", {
-                    description: response.data.message,
-                  });
-                router.replace('sign-in')
-        } catch (error) {
-            console.error("Signup Error:", error);
-            
-                  const axiosError = error as AxiosError<ApiResponse>;
-            
-                  const errorMessage =
-                    axiosError.response?.data.message ??
-                    "Something went wrong";
-            
-                  toast.error("Error", {
-                    description: errorMessage,
-                  });
-            
-        }
-      }
-   return (
-     <div className="flex justify-center items-center min-h-screen bg-gray-100">
+  return (
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
@@ -68,7 +65,7 @@ import { Button } from '@react-email/components'
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel >
+                  <FieldLabel>
                     Verification Code
                   </FieldLabel>
                   <Input
@@ -87,7 +84,7 @@ import { Button } from '@react-email/components'
         </form>
       </div>
     </div>
-   )
- }
- 
- export default verifyAccount
+  )
+}
+
+export default verifyAccount
