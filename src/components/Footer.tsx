@@ -39,8 +39,8 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-slate-800 py-5 px-6 text-center text-xs md:text-sm text-slate-500">
-        © {new Date().getFullYear()} MysteryMessage. Built with{" "}
-        <span className="text-indigo-400">❤</span> using Next.js, TypeScript
+        © {new Date().getFullYear()} True Feedback. Built with{" "}
+        <span className="text-indigo-400">❤</span>By Ibraheem using Next.js, TypeScript
         &amp; Tailwind CSS.
       </div>
     </footer>
