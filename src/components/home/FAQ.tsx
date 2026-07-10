@@ -59,7 +59,7 @@ export default function FAQ() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mt-12 rounded-2xl border border-slate-800 bg-slate-900/50 px-6 backdrop-blur-sm"
         >
-          <Accordion type="single" className="w-full">
+         <Accordion multiple={false} className="w-full">
             {faqs.map((faq, i) => (
               <AccordionItem
                 key={i}
