@@ -10,9 +10,10 @@ import { ApiResponse as ApiResponseClass } from "@/utils/ApiResponse";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { z } from "zod";
+import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCcw, Copy, Inbox } from "lucide-react";
+import { Loader2, RefreshCcw, Copy, Inbox, Link2, Bell } from "lucide-react";
 import MessageCard from "@/components/MessageCard";
 import { Separator } from "@/components/ui/separator";
 import { User } from "next-auth";
@@ -45,7 +46,10 @@ function Page() {
     setIsSwitchLoading(true);
     try {
       const response = await axios.get<ApiResponse>("/api/accept-messages");
-      setValue("acceptMessages", response.data.isAcceptingMessage ?? false);
+      setValue(
+        "acceptMessages",
+        response.data.data?.isAcceptingMessages ?? false
+      );
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error("Error", {
@@ -105,13 +109,15 @@ function Page() {
     }
   }, [session]);
 
-  const handleSwitchChange = async () => {
+  const handleSwitchChange = async (checked: boolean) => {
     try {
-      const response = await axios.post<ApiResponse>("/api/accept-messages", {
-        acceptMessages: !acceptMessages,
+      await axios.post("/api/accept-messages", {
+        acceptMessages: checked,
       });
-      setValue("acceptMessages", !acceptMessages);
-      toast.success(response.data.message);
+
+      setValue("acceptMessages", checked);
+
+      toast.success("Message settings updated");
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error("Error", {
@@ -138,15 +144,31 @@ function Page() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 md:p-10 bg-slate-900/60 backdrop-blur-sm border border-slate-800 rounded-2xl w-full max-w-6xl shadow-2xl shadow-black/40">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-slate-100 tracking-tight">
+    <div className="min-h-screen">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 md:p-10 bg-gradient-to-b from-slate-900/80 to-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-2xl w-full max-w-6xl shadow-2xl shadow-black/40"
+      >
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="text-3xl md:text-4xl font-bold mb-8 text-slate-100 tracking-tight"
+        >
           User Dashboard
-        </h1>
+        </motion.h1>
 
-        <div className="mb-6">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400 mb-2">
-            Copy Your Unique Link
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-5 rounded-xl border border-slate-800 bg-slate-800/40 p-4"
+        >
+          <h2 className="flex items-center gap-2 text-sm font-medium text-indigo-300 mb-3">
+            <Link2 className="h-4 w-4" />
+            Your Unique Link
           </h2>
           <div className="flex items-center gap-2">
             <input
@@ -163,10 +185,16 @@ function Page() {
               Copy
             </Button>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="mb-6 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/50 px-4 py-3">
-          <span className="text-slate-300 text-sm font-medium">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mb-6 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/40 px-4 py-4"
+        >
+          <span className="flex items-center gap-2 text-slate-200 text-sm font-medium">
+            <Bell className="h-4 w-4 text-violet-400" />
             Accept Messages:{" "}
             <span
               className={
@@ -182,11 +210,16 @@ function Page() {
             disabled={isSwitchLoading}
             className="data-[state=checked]:bg-indigo-600"
           />
-        </div>
+        </motion.div>
 
         <Separator className="bg-slate-800 mb-6" />
 
-        <div className="flex items-center justify-between mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex items-center justify-between mb-6"
+        >
           <h2 className="text-lg font-semibold text-slate-200">
             Your Messages
           </h2>
@@ -204,25 +237,36 @@ function Page() {
               <RefreshCcw className="h-4 w-4" />
             )}
           </Button>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {messages.length > 0 ? (
-            messages.map((message) => (
-              <MessageCard
+            messages.map((message, index) => (
+              <motion.div
                 key={message._id}
-                message={message}
-                onMessageDelete={handleDeleteMessage}
-              />
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 * index }}
+              >
+                <MessageCard
+                  message={message}
+                  onMessageDelete={handleDeleteMessage}
+                />
+              </motion.div>
             ))
           ) : (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="col-span-full flex flex-col items-center justify-center py-16 text-slate-500"
+            >
               <Inbox className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">No messages to display.</p>
-            </div>
+            </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
