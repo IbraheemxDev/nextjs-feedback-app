@@ -15,7 +15,6 @@ const MessageSchema: Schema<Message> = new Schema({
     default: Date.now,
   },
 });
-
 export interface User extends Document {
   username: string;
   email: string;
@@ -25,6 +24,7 @@ export interface User extends Document {
   verifyCodeExpiry: Date;
   isAcceptingMessage: boolean;
   messages: Message[];
+  comparePassword(password: string): Promise<boolean>;
 }
 const UserSchema: Schema<User> = new Schema({
   username: {
